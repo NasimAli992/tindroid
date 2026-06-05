@@ -1,0 +1,159 @@
+workflows:
+  android-release-build:
+    name: Android Release APK Build
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    
+    environment:
+      android_signing:
+        - keystore_reference
+      vars:
+        ANDROID_HOME: $HOME/Library/Android/sdk
+        GRADLE_OPTS: "-Xmx4096m -XX:MaxPermSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
+        PACKAGE_NAME: "co.tinode.tindroidx"
+        APP_MODULE: "app"
+      flutter: default
+      xcode: latest
+    
+    scripts:
+      - name: Set up Android SDK
+        script: |
+          # Android SDK setup
+          mkdir -p ~/.android
+          echo "count=0" > ~/.android/avd.lock
+      
+      - name: Create keystore.properties
+        script: |
+          cd $CODEMAGIC_BUILD_DIR
+          cat > keystore.properties << EOF
+          storeFile=$CM_KEYSTORE_PATH
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          keyPassword=$CM_KEY_PASSWORD
+          EOF
+      
+      - name: Build Android Release APK
+        script: |
+          cd $CODEMAGIC_BUILD_DIR
+          ./gradlew assembleRelease \
+            -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxPermSize=1024m" \
+            --build-cache \
+            -PversionCode=$BUILD_NUMBER \
+            -PversionName=1.0.$BUILD_NUMBER
+      
+      - name: Build Android Release Bundle (AAB)
+        script: |
+          cd $CODEMAGIC_BUILD_DIR
+          ./gradlew bundleRelease \
+            -Dorg.gradle.jvmargs="-Xmx4096m -XX:MaxPermSize=1024m" \
+            --build-cache \
+            -PversionCode=$BUILD_NUMBER \
+            -PversionName=1.0.$BUILD_NUMBER
+    
+    artifacts:
+      - app/build/outputs/apk/release/*.apk
+      - app/build/outputs/bundle/release/*.aab
+      - build/logs
+    
+    publishing:
+      email:
+        recipients:
+          - $DEVELOPER_EMAIL
+        notify:
+          success: true
+          failure: true
+      
+      slack:
+        channel: $SLACK_CHANNEL_ID
+        notify_on_build_start: true
+        notify:
+          success: true
+          failure: true
+        messages:
+          success: |
+            Build #$BUILD_NUMBER for *Tindroid* completed successfully! ✅
+            
+            📦 Artifacts:
+            • APK: app/build/outputs/apk/release/
+            • AAB: app/build/outputs/bundle/release/
+            
+            Branch: $BRANCH
+            Commit: $COMMIT_MESSAGE
+          failure: |
+            Build #$BUILD_NUMBER for *Tindroid* failed ❌
+            
+            Branch: $BRANCH
+            Commit: $COMMIT_MESSAGE
+      
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+
+  android-debug-build:
+    name: Android Debug APK Build
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    
+    environment:
+      vars:
+        ANDROID_HOME: $HOME/Library/Android/sdk
+        GRADLE_OPTS: "-Xmx4096m -XX:MaxPermSize=1024m"
+        PACKAGE_NAME: "co.tinode.tindroidx"
+      flutter: default
+      xcode: latest
+    
+    scripts:
+      - name: Build Android Debug APK
+        script: |
+          cd $CODEMAGIC_BUILD_DIR
+          ./gradlew assembleDebug \
+            -Dorg.gradle.jvmargs="-Xmx4096m" \
+            --build-cache
+      
+      - name: Run Unit Tests
+        script: |
+          cd $CODEMAGIC_BUILD_DIR
+          ./gradlew test \
+            -Dorg.gradle.jvmargs="-Xmx4096m" \
+            --build-cache
+    
+    artifacts:
+      - app/build/outputs/apk/debug/*.apk
+      - build/reports/tests
+    
+    publishing:
+      email:
+        recipients:
+          - $DEVELOPER_EMAIL
+        notify:
+          success: true
+          failure: true
+
+  android-instrumented-tests:
+    name: Android Instrumented Tests
+    max_build_duration: 90
+    instance_type: mac_mini_m1
+    
+    environment:
+      vars:
+        ANDROID_HOME: $HOME/Library/Android/sdk
+        GRADLE_OPTS: "-Xmx4096m"
+      flutter: default
+      xcode: latest
+    
+    scripts:
+      - name: Build Test APK
+        script: |
+          cd $CODEMAGIC_BUILD_DIR
+          ./gradlew assembleAndroidTest \
+            -Dorg.gradle.jvmargs="-Xmx4096m"
+      
+      - name: Run Instrumented Tests
+        script: |
+          cd $CODEMAGIC_BUILD_DIR
+          ./gradlew connectedAndroidTest \
+            -Dorg.gradle.jvmargs="-Xmx4096m"
+    
+    artifacts:
+      - build/reports/androidTests/connected
