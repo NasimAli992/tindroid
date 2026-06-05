@@ -45,20 +45,35 @@ tasks.register('clean', Delete) {
 
 // Use git revision counter as a version code.
 static def gitVersionCode() {
-    // If you are not compiling in a git directory and getting an error like
-    // [A problem occurred evaluating root project 'master'. For input string: ""]
-    // then just return your manually assigned error code like this:
-    //  return 12345
-    def process = "git rev-list --count HEAD".execute()
-    return process.text.toInteger()
+    try {
+        def process = "git rev-list --count HEAD".execute()
+        process.waitFor()
+        def count = process.text.trim()
+        return count.isEmpty() ? 1 : count.toInteger()
+    } catch (Exception e) {
+        return 1
+    }
 }
 
 // Use current git tag as a version name.
 // For example, if the git tag is 'v0.20.0-rc1' then the version name will be '0.20.0-rc1'.
 static def gitVersionName() {
-    // If you are not compiling in a git directory, you should manually assign version name:
-    //  return "MyVersionName"
-    def process = "git describe --tags".execute()
-    // Remove trailing CR and remove leading 'v' as in 'v1.2.3'
-    return process.text.trim().substring(1)
+    try {
+        def process = "git describe --tags".execute()
+        process.waitFor()
+        def tag = process.text.trim()
+        
+        // If no tags found or error occurred, use a default version
+        if (tag.isEmpty() || tag.contains("fatal")) {
+            return "1.0.0"
+        }
+        
+        // Remove leading 'v' as in 'v1.2.3'
+        if (tag.startsWith('v') && tag.length() > 1) {
+            return tag.substring(1)
+        }
+        return tag
+    } catch (Exception e) {
+        return "1.0.0"
+    }
 }
