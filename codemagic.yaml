@@ -1,0 +1,28 @@
+workflows:
+  android-workflow:
+    name: Android Workflow
+    instance_type: linux
+    max_build_duration: 120
+    environment:
+      java: 17
+      android_sdk: 36
+      groups:
+        - google_play # <-- (Includes GCLOUD_SERVICE_ACCOUNT_CREDENTIALS)
+    scripts:
+      - name: Set up local.properties
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+      - name: Build the application
+        script: |
+          ./gradlew build
+    artifacts:
+      - app/build/outputs/**/*.apk
+      - app/build/outputs/**/*.aab
+    publishing:
+      email:
+        recipients:
+          - user_1@example.com
+          - user_2@example.com
+        notify:
+          success: true
+          failure: false
