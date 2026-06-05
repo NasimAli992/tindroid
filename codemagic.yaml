@@ -5,7 +5,6 @@ workflows:
     max_build_duration: 120
     environment:
       java: 17
-      android_sdk: 36
       groups:
         - google_play # <-- (Includes GCLOUD_SERVICE_ACCOUNT_CREDENTIALS)
     scripts:
@@ -14,6 +13,7 @@ workflows:
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
       - name: Build the application
         script: |
+          chmod +x ./gradlew
           ./gradlew build
     artifacts:
       - app/build/outputs/**/*.apk
