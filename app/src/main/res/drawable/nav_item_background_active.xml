@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Active Navigation Item Background with Pill Shape and Gradient -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="#00BCD4"
+    android:radius="28dp">
+    
+    <item>
+        <layer-list>
+            <!-- Gradient background -->
+            <item>
+                <shape android:shape="rectangle">
+                    <gradient
+                        android:type="linear"
+                        android:angle="135"
+                        android:startColor="#4FC3F7"
+                        android:endColor="#00BCD4" />
+                    <corners android:radius="20dp" />
+                </shape>
+            </item>
+            
+            <!-- Inner shadow for depth -->
+            <item
+                android:bottom="1dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#1A000000" />
+                    <corners android:radius="20dp" />
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+</ripple>
